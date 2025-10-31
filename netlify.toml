@@ -4,12 +4,20 @@
 [build]
 # Command:
 # 1. Go into the rsmart-habit-builder folder
-# 2. Run the build command (CI=false tells it to ignore warnings)
-command = "cd rsmart-habit-builder && CI=false npm run build"
+# 2. Run the build command
+command = "cd rsmart-habit-builder && npm run build"
 
 # Publish directory:
 # The full path from the root of your project to the final built site.
 publish = "rsmart-habit-builder/dist"
+
+# Set environment variables for the build
+[build.environment]
+  # Use a modern version of Node.js that Vite requires
+  NODE_VERSION = "20" 
+  # This is the most important line:
+  # It tells Netlify/Vite NOT to treat warnings as build-breaking errors.
+  CI = "false"
 
 # Redirects rule for React Router
 # This makes sure /login, /dashboard, etc. work on the live site.
