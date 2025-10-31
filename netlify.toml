@@ -10,8 +10,8 @@
   base = "rsmart-habit-builder"
   
   # This is the folder that the build command creates
-  # (the "Publish directory" from the UI)
-  publish = "rsmart-habit-builder/dist"
+  # (the "Publish directory" relative to the "base" directory)
+  publish = "dist"
 
 [[redirects]]
   # This line does the same job as the `_redirects` file,
@@ -19,3 +19,5 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+
