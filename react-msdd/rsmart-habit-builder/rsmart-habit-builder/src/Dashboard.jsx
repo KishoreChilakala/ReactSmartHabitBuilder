@@ -1,75 +1,132 @@
 import React, { useState, useEffect } from "react";
+import axios from 'axios'; // Import axios
+import { useNavigate } from 'react-router-dom'; // Import useNavigate for redirection
 
+// Helper function to get today's date
 function today() {
   return new Date().toISOString().split('T')[0];
 }
 
-function getCurrentUserKey() {
-  const user = JSON.parse(localStorage.getItem("currentUser") || "null");
-  return user ? "habits_" + user.email : "habits_guest";
-}
+// --- API Helper ---
+// Create an axios instance with default settings
+// This will automatically add our auth token to every request
+const api = axios.create({
+  baseURL: 'http://localhost:4000/api',
+});
 
-function loadHabits() {
-  return JSON.parse(localStorage.getItem(getCurrentUserKey()) || '[]');
-}
-function saveHabits(habits) {
-  localStorage.setItem(getCurrentUserKey(), JSON.stringify(habits));
-}
+// Use an "interceptor" to add the token to headers before each request is sent
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+// --- End of API Helper ---
+
 
 const Dashboard = () => {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
-  const [habits, setHabits] = useState(loadHabits());
+  // Remove currentUser, it's no longer needed here
+  const [habits, setHabits] = useState([]); // Default to empty array
   const [habitName, setHabitName] = useState("");
   const [completedToday, setCompletedToday] = useState(0);
+  const [isLoading, setIsLoading] = useState(true); // Start loading
+  const [error, setError] = useState(""); // To store API errors
+  const navigate = useNavigate();
 
+  // --- Data Fetching ---
+  useEffect(() => {
+    // Fetch habits from the backend when the component mounts
+    const fetchHabits = async () => {
+      setIsLoading(true);
+      setError("");
+      try {
+        const response = await api.get('/habits');
+        setHabits(response.data); // Set habits from API response
+      } catch (err) {
+        // Handle different types of errors
+        if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+          // 401 (Unauthorized) or 403 (Forbidden) means token is bad or expired
+          setError("Your session has expired. Please log in again.");
+          localStorage.removeItem("token"); // Clear bad token
+          localStorage.removeItem("currentUser");
+          navigate("/login"); // Redirect to login
+        } else {
+          setError("Failed to load habits. Please check your connection or try again later.");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchHabits();
+  }, [navigate]); // Add navigate to dependency array
+
+  // --- Statistics Calculation ---
+  // This effect runs whenever the 'habits' state changes
   useEffect(() => {
     const doneToday = habits.filter(h => h.completedDates.includes(today())).length;
     setCompletedToday(doneToday);
-    saveHabits(habits);
+    // Removed saveHabits(), as the server is our source of truth
   }, [habits]);
 
-  const addHabit = (e) => {
+  // --- Event Handlers ---
+
+  const addHabit = async (e) => {
     e.preventDefault();
     const name = habitName.trim();
     if (!name) return;
-    setHabits([
-      ...habits,
-      {
-        id: Date.now(),
-        name,
-        streak: 0,
-        completedDates: [],
-        createdAt: today()
-      }
-    ]);
-    setHabitName("");
+
+    try {
+      // Send POST request to the backend
+      const response = await api.post('/habits', { name });
+      // The backend sends back the new full list of habits
+      setHabits(response.data);
+      setHabitName(""); // Clear input on success
+    } catch { // Removed unused 'err' variable
+      setError("Failed to add habit. Please try again.");
+    }
   };
 
-  const markComplete = (id) => {
-    setHabits(
-      habits.map(h => {
-        if (h.id !== id) return h;
-        if (h.completedDates.includes(today())) return h;
-        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-        const streak =
-          h.completedDates.length && h.completedDates[h.completedDates.length - 1] === yesterday
-            ? h.streak + 1
-            : 1;
-        return {
-          ...h,
-          streak,
-          completedDates: [...h.completedDates, today()]
-        };
-      })
-    );
+  const markComplete = async (id) => {
+    try {
+      // Send PUT request to the specific habit's endpoint
+      const response = await api.put(`/habits/${id}/complete`);
+      // The backend sends back the updated full list of habits
+      setHabits(response.data);
+    } catch { // Removed unused 'err' variable
+      setError("Failed to mark habit complete. Please try again.");
+    }
   };
 
   const completionRate = habits.length
     ? Math.round((completedToday / habits.length) * 100)
     : 0;
 
+  // --- Render ---
+
+  // Show loading state
+  if (isLoading) {
+    return <div style={{ padding: "2rem", textAlign: "center", fontSize: "1.5rem" }}>Loading Dashboard...</div>;
+  }
+
   return (
     <div style={{ padding: "2rem", background: "#f7f9fd", minHeight: "100vh" }}>
+      {/* Show API error message */}
+      {error && (
+        <div style={{
+          background: "#ffdddd", border: "1px solid #d32f2f", color: "#d32f2f",
+          padding: "1rem", borderRadius: "8px", textAlign: "center", marginBottom: "1.5rem", fontWeight: 600
+        }}>
+          {error}
+        </div>
+      )}
+
       <div style={{
         background: "#fff", padding: "1.3rem", borderRadius: "18px",
         marginBottom: "2rem", textAlign: "center", boxShadow: "0 2px 16px #dde3fb"
@@ -142,6 +199,7 @@ const Dashboard = () => {
                   padding: "0.55em 1.5em",
                   borderRadius: "8px",
                   cursor: completedDates.includes(today()) ? "not-allowed" : "pointer",
+  
                   fontWeight: 700
                 }}
                 onClick={() => !completedDates.includes(today()) && markComplete(id)}
@@ -158,3 +216,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+

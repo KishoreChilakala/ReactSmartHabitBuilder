@@ -1,16 +1,19 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from 'axios';
 
-const Login = () => {
+// 1. It must accept { onLoginSuccess } as a prop
+const Login = ({ onLoginSuccess }) => {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
@@ -18,17 +21,29 @@ const Login = () => {
       setError("Please enter both email and password.");
       return;
     }
-    // Load users from localStorage
-    let users = JSON.parse(localStorage.getItem("users") || "[]");
-    let match = users.find(
-      (u) => u.email === form.email && u.password === form.password
-    );
-    if (match) {
-      localStorage.setItem("token", "signedin");
-      localStorage.setItem("currentUser", JSON.stringify(match));
-      navigate("/dashboard"); // or "/"
-    } else {
-      setError("Invalid email or password.");
+
+    setIsLoading(true);
+    try {
+      const response = await axios.post("http://localhost:4000/api/auth/login", {
+        email: form.email,
+        password: form.password,
+      });
+
+      // Save credentials
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("currentUser", JSON.stringify(response.data.user));
+
+      // 2. It MUST call onLoginSuccess() right here
+      onLoginSuccess(); 
+      
+      // 3. Then it navigates
+      navigate("/dashboard");
+
+    } catch (err) {
+      const message = err.response?.data?.message || "Login failed. Please try again.";
+      setError(message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -61,7 +76,9 @@ const Login = () => {
             autoComplete="current-password"
           />
         </label>
-        <button type="submit">Login</button>
+        <button type="submit" disabled={isLoading}>
+          {isLoading ? "Logging in..." : "Login"}
+        </button>
       </form>
       <p style={{ marginTop: "1rem" }}>
         Forgot your password? <a href="/forgot-password">Click here</a>
@@ -74,3 +91,4 @@ const Login = () => {
 };
 
 export default Login;
+
