@@ -39,11 +39,11 @@ function Signup() {
       // We can then navigate the user to the login page.
       navigate("/login");
 
-    } catch (err) {
+    } catch (_err) {
       // This block runs if the API call fails
-      if (err.response && err.response.data && err.response.data.message) {
+      if (_err.response && _err.response.data && _err.response.data.message) {
         // This will display server-side errors, like "User with this email already exists."
-        setError(err.response.data.message);
+        setError(_err.response.data.message);
       } else {
         // This handles network errors or if the server is down
         setError("Signup failed. Please check your connection and try again.");

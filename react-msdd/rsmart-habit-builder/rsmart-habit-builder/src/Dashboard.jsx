@@ -48,9 +48,9 @@ const Dashboard = () => {
       try {
         const response = await api.get('/habits');
         setHabits(response.data); // Set habits from API response
-      } catch (err) {
+      } catch (_err) {
         // Handle different types of errors
-        if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+        if (_err.response && (_err.response.status === 401 || _err.response.status === 403)) {
           // 401 (Unauthorized) or 403 (Forbidden) means token is bad or expired
           setError("Your session has expired. Please log in again.");
           localStorage.removeItem("token"); // Clear bad token
