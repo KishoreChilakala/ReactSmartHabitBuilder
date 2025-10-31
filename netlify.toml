@@ -4,9 +4,9 @@
 [build]
   # Command to run:
   # 1. Navigates into the correct, deep folder
-  # 2. Sets CI=false to ignore linter errors
+  # 2. Runs "npm install" to get all dependencies (including "vite")
   # 3. Runs the build
-  command = "cd react-msdd/rsmart-habit-builder/rsmart-habit-builder && CI=false npm run build"
+  command = "cd react-msdd/rsmart-habit-builder/rsmart-habit-builder && npm install && CI=false npm run build"
   
   # The folder that contains the final built website (relative to the root)
   publish = "react-msdd/rsmart-habit-builder/rsmart-habit-builder/dist"
@@ -16,7 +16,7 @@
     NODE_VERSION = "20"
     # This officially tells Netlify to ignore linter warnings
     CI = "false"
-    # This is the NEW LINE: It tells Netlify to install devDependencies
+    # We are no longer using this, but it doesn't hurt to leave it.
     NPM_FLAGS = "--include=dev"
 
 # This rule makes React Router (for pages like /login, /dashboard) work correctly.
