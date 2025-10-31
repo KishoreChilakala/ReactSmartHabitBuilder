@@ -1,0 +1,21 @@
+# This file tells Netlify all of its settings,
+# bypassing the confusing UI.
+
+[build]
+  # This is the command to build your React app
+  command = "npm run build"
+  
+  # This is the folder Netlify should look in for your frontend code
+  # (the "Base directory" from the UI)
+  base = "rsmart-habit-builder"
+  
+  # This is the folder that the build command creates
+  # (the "Publish directory" from the UI)
+  publish = "rsmart-habit-builder/dist"
+
+[[redirects]]
+  # This line does the same job as the `_redirects` file,
+  # so you can delete that one if you want.
+  from = "/*"
+  to = "/index.html"
+  status = 200
