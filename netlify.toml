@@ -16,6 +16,8 @@
     NODE_VERSION = "20"
     # This officially tells Netlify to ignore linter warnings
     CI = "false"
+    # This is the NEW LINE: It tells Netlify to install devDependencies
+    NPM_FLAGS = "--include=dev"
 
 # This rule makes React Router (for pages like /login, /dashboard) work correctly.
 [[redirects]]
