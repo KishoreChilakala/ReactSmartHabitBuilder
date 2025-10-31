@@ -4,8 +4,8 @@
 [build]
 # Command:
 # 1. Go into the rsmart-habit-builder folder
-# 2. Run the build command
-command = "cd rsmart-habit-builder && npm run build"
+# 2. Run the build command (CI=false tells it to ignore warnings)
+command = "cd rsmart-habit-builder && CI=false npm run build"
 
 # Publish directory:
 # The full path from the root of your project to the final built site.
