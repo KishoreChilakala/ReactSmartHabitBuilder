@@ -2,9 +2,14 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from 'axios'; // Import axios to make HTTP requests
 
+// 1. Get the API URL from the environment variable
+// This is the only line that really needs to change
+const API_URL = `${import.meta.env.VITE_API_URL}/auth/signup`;
+
 function Signup() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(""); // Added success state
   const [isLoading, setIsLoading] = useState(false); // Add loading state
   const navigate = useNavigate();
 
@@ -16,6 +21,7 @@ function Signup() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError(""); // Clear previous errors
+    setSuccess(""); // Clear previous success
 
     // Client-side validation
     if (!form.name.trim() || !form.email.trim() || !form.password.trim()) {
@@ -26,28 +32,24 @@ function Signup() {
     setIsLoading(true); // Set loading to true before the request
 
     try {
-      // This replaces all the localStorage logic
-      // Send a POST request to the backend signup endpoint
-      // We await the request but don't need to store the response
-      await axios.post('http://localhost:4000/api/auth/signup', {
+      // 2. Use the new API_URL variable
+      await axios.post(API_URL, {
         name: form.name,
         email: form.email,
         password: form.password
       });
 
-      // If successful, the backend will send a 201 status.
-      // We can then navigate the user to the login page.
-      navigate("/login");
+      // If successful, show a success message and redirect
+      setSuccess("Account created! Redirecting to login...");
+      setForm({ name: "", email: "", password: "" }); // Clear form
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000); // Wait 2 seconds before redirecting
 
     } catch (_err) {
       // This block runs if the API call fails
-      if (_err.response && _err.response.data && _err.response.data.message) {
-        // This will display server-side errors, like "User with this email already exists."
-        setError(_err.response.data.message);
-      } else {
-        // This handles network errors or if the server is down
-        setError("Signup failed. Please check your connection and try again.");
-      }
+      const message = _err.response?.data?.message || "Signup failed. Please try again.";
+      setError(message);
     } finally {
       // This runs after the try or catch block
       setIsLoading(false); // Set loading to false
@@ -57,12 +59,19 @@ function Signup() {
   return (
     <div className="center-card" style={{ maxWidth: 400, margin: "3rem auto" }}>
       <h2 style={{ textAlign: "center", color: "#4265fa", fontWeight: "bold" }}>Sign Up</h2>
-      {/* Updated error display to be more prominent, like in Login.jsx */}
+      
+      {/* Show error or success messages */}
       {error && (
         <div className="error" role="alert" style={{ color: "red", marginBottom: "1rem", fontWeight: 600 }}>
           {error}
         </div>
       )}
+      {success && (
+        <div className="success" role="alert" style={{ color: "green", marginBottom: "1rem", fontWeight: 600 }}>
+          {success}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit}>
         <label>
           Name

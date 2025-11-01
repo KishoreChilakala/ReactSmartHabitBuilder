@@ -2,16 +2,13 @@ import React, { useState, useEffect } from "react";
 import axios from 'axios'; // Import axios
 import { useNavigate } from 'react-router-dom'; // Import useNavigate for redirection
 
-// Helper function to get today's date
-function today() {
-  return new Date().toISOString().split('T')[0];
-}
-
 // --- API Helper ---
+// 1. Get the base URL from the environment variable
+const API_BASE_URL = import.meta.env.VITE_API_URL; 
+
 // Create an axios instance with default settings
-// This will automatically add our auth token to every request
 const api = axios.create({
-  baseURL: 'http://localhost:4000/api',
+  baseURL: API_BASE_URL, // 2. Use the variable here
 });
 
 // Use an "interceptor" to add the token to headers before each request is sent
@@ -29,9 +26,12 @@ api.interceptors.request.use(
 );
 // --- End of API Helper ---
 
+// Helper function to get today's date
+function today() {
+  return new Date().toISOString().split('T')[0];
+}
 
 const Dashboard = () => {
-  // Remove currentUser, it's no longer needed here
   const [habits, setHabits] = useState([]); // Default to empty array
   const [habitName, setHabitName] = useState("");
   const [completedToday, setCompletedToday] = useState(0);
@@ -39,23 +39,24 @@ const Dashboard = () => {
   const [error, setError] = useState(""); // To store API errors
   const navigate = useNavigate();
 
+  // Get user's name from localStorage
+  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
+  const userName = currentUser ? currentUser.name : "Guest";
+
   // --- Data Fetching ---
   useEffect(() => {
-    // Fetch habits from the backend when the component mounts
     const fetchHabits = async () => {
       setIsLoading(true);
       setError("");
       try {
-        const response = await api.get('/habits');
+        const response = await api.get('/habits'); // Fetches from /api/habits
         setHabits(response.data); // Set habits from API response
-      } catch (_err) {
-        // Handle different types of errors
+      } catch (_err) { // Use _err to avoid lint warning
         if (_err.response && (_err.response.status === 401 || _err.response.status === 403)) {
-          // 401 (Unauthorized) or 403 (Forbidden) means token is bad or expired
           setError("Your session has expired. Please log in again.");
-          localStorage.removeItem("token"); // Clear bad token
+          localStorage.removeItem("token"); 
           localStorage.removeItem("currentUser");
-          navigate("/login"); // Redirect to login
+          navigate("/login"); 
         } else {
           setError("Failed to load habits. Please check your connection or try again later.");
         }
@@ -63,16 +64,13 @@ const Dashboard = () => {
         setIsLoading(false);
       }
     };
-
     fetchHabits();
   }, [navigate]); // Add navigate to dependency array
 
   // --- Statistics Calculation ---
-  // This effect runs whenever the 'habits' state changes
   useEffect(() => {
     const doneToday = habits.filter(h => h.completedDates.includes(today())).length;
     setCompletedToday(doneToday);
-    // Removed saveHabits(), as the server is our source of truth
   }, [habits]);
 
   // --- Event Handlers ---
@@ -83,24 +81,29 @@ const Dashboard = () => {
     if (!name) return;
 
     try {
-      // Send POST request to the backend
       const response = await api.post('/habits', { name });
-      // The backend sends back the new full list of habits
       setHabits(response.data);
-      setHabitName(""); // Clear input on success
-    } catch { // Removed unused 'err' variable
+      setHabitName(""); 
+    } catch (_err) { // Use _err to avoid lint warning
       setError("Failed to add habit. Please try again.");
     }
   };
 
   const markComplete = async (id) => {
     try {
-      // Send PUT request to the specific habit's endpoint
       const response = await api.put(`/habits/${id}/complete`);
-      // The backend sends back the updated full list of habits
       setHabits(response.data);
-    } catch { // Removed unused 'err' variable
+    } catch (_err) { // Use _err to avoid lint warning
       setError("Failed to mark habit complete. Please try again.");
+    }
+  };
+
+  const deleteHabit = async (id) => {
+    try {
+      const response = await api.delete(`/habits/${id}`);
+      setHabits(response.data);
+    } catch (_err) { // Use _err to avoid lint warning
+      setError("Failed to delete habit. Please try again.");
     }
   };
 
@@ -109,15 +112,12 @@ const Dashboard = () => {
     : 0;
 
   // --- Render ---
-
-  // Show loading state
   if (isLoading) {
     return <div style={{ padding: "2rem", textAlign: "center", fontSize: "1.5rem" }}>Loading Dashboard...</div>;
   }
 
   return (
     <div style={{ padding: "2rem", background: "#f7f9fd", minHeight: "100vh" }}>
-      {/* Show API error message */}
       {error && (
         <div style={{
           background: "#ffdddd", border: "1px solid #d32f2f", color: "#d32f2f",
@@ -132,13 +132,13 @@ const Dashboard = () => {
         marginBottom: "2rem", textAlign: "center", boxShadow: "0 2px 16px #dde3fb"
       }}>
         <h1 style={{ color: "#4f74f9", fontSize: "2.1em", fontWeight: 800, marginBottom: "0.2em" }}>
-          Add New Habit
+          Welcome, {userName}!
         </h1>
         <form onSubmit={addHabit} style={{ display: "flex", gap: "1rem", justifyContent: "center", margin: "1.5em auto 0 auto", maxWidth: 480 }}>
           <input
             value={habitName}
             onChange={e => setHabitName(e.target.value)}
-            placeholder="Enter habit name (e.g., Drink 8 glasses of water)"
+            placeholder="Enter a new habit..."
             style={{ flex: 1, padding: "0.7em", borderRadius: "8px", border: "1px solid #e5eafc" }}
           />
           <button type="submit" style={{
@@ -149,7 +149,7 @@ const Dashboard = () => {
           </button>
         </form>
       </div>
-      <div style={{ display: "flex", justifyContent: "center", gap: "2rem", margin: "2.5rem 0" }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: "2rem", margin: "2.5rem 0", flexWrap: "wrap" }}>
         <div className="dashboard-stat">
           <div className="stat-icon" style={{ background: "#e5edfe" }}>🔥</div>
           <div className="stat-value">{habits.length}</div>
@@ -190,23 +190,42 @@ const Dashboard = () => {
                   Streak: {streak} 🔥
                 </div>
               </div>
-              <button
-                style={{
-                  background: completedDates.includes(today())
-                    ? "#b5dbf5" : "#53b98f",
-                  color: "#fff",
-                  border: "none",
-                  padding: "0.55em 1.5em",
-                  borderRadius: "8px",
-                  cursor: completedDates.includes(today()) ? "not-allowed" : "pointer",
-  
-                  fontWeight: 700
-                }}
-                onClick={() => !completedDates.includes(today()) && markComplete(id)}
-                disabled={completedDates.includes(today())}
-              >
-                {completedDates.includes(today()) ? "Completed" : "Mark Complete"}
-              </button>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <button
+                  style={{
+                    background: completedDates.includes(today())
+                      ? "#b5dbf5" : "#53b98f",
+                    color: "#fff",
+                    border: "none",
+                    padding: "0.55em 1.5em",
+                    borderRadius: "8px",
+                    cursor: completedDates.includes(today()) ? "not-allowed" : "pointer",
+                    fontWeight: 700
+                  }}
+                  onClick={() => !completedDates.includes(today()) && markComplete(id)}
+                  disabled={completedDates.includes(today())}
+                >
+                  {completedDates.includes(today()) ? "Completed" : "Mark Complete"}
+                </button>
+                <button
+                  title="Delete habit"
+                  onClick={() => deleteHabit(id)}
+                  style={{
+                    background: '#fde8e8',
+                    color: '#d9534f',
+                    border: 'none',
+                    borderRadius: '8px',
+                    width: '38px',
+                    height: '38px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    fontSize: '1.2rem',
+                    lineHeight: '1',
+                  }}
+                >
+                  &times;
+                </button>
+              </div>
             </li>
           ))}
         </ul>

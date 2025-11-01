@@ -1,22 +1,13 @@
 import React from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import "./Navbar.css";
 
-// Get user info from localStorage
-const isLoggedIn = !!localStorage.getItem("token");
-const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+// 1. Accept isLoggedIn and onLogout as props from App.jsx
+const Navbar = ({ isLoggedIn, onLogout }) => {
 
-const Navbar = () => {
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    // Clear user data from storage
-    localStorage.removeItem("token");
-    localStorage.removeItem("currentUser");
-    // Redirect to login page and refresh the window
-    navigate("/login");
-    window.location.reload(); // Force reload to clear all state
-  };
+  // Get user's name from localStorage (this is okay to do here)
+  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
+  const userName = currentUser ? currentUser.name : "User";
 
   return (
     <nav className="navbar">
@@ -25,32 +16,26 @@ const Navbar = () => {
         <span>Smart Habit Builder</span>
       </div>
       <ul className="navbar__menu">
-        {/* Show Dashboard link if logged in */}
-        {isLoggedIn && (
-          <li><NavLink to="/dashboard">Dashboard</NavLink></li>
-        )}
-        
-        {/* Keep these links for logged-in users */}
-        {isLoggedIn && (
+        {/* 2. Show these links ONLY when logged in */}
+        {isLoggedIn ? (
           <>
+            <li><NavLink to="/dashboard">Dashboard</NavLink></li>
             <li><NavLink to="/about">About</NavLink></li>
             <li><NavLink to="/contact">Contact</NavLink></li>
           </>
+        ) : (
+          // 3. Show this link ONLY when logged out
+          <li><NavLink to="/" end>Home</NavLink></li>
         )}
 
-        {/* Show Home/Login for logged-out users */}
-        {!isLoggedIn && (
-           <li><NavLink to="/" end>Home</NavLink></li>
-        )}
-
-        {/* Conditional Login/Logout Button */}
+        {/* 4. Conditional Login/Logout Button */}
         <li>
           {isLoggedIn ? (
             <>
               <span style={{ marginRight: '1.5em', color: '#555' }}>
-                Hi, {currentUser ? currentUser.name : 'User'}!
+                Hi, {userName}!
               </span>
-              <button onClick={handleLogout} className="btn-logout">
+              <button onClick={onLogout} className="btn-logout" style={{border: 'none', cursor: 'pointer'}}>
                 Logout
               </button>
             </>
@@ -64,3 +49,4 @@ const Navbar = () => {
 };
 
 export default Navbar;
+

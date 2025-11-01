@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from 'axios';
 
+// Get the API URL from the environment variable
+const API_URL = `${import.meta.env.VITE_API_URL}/auth/login`;
+
 // 1. It must accept { onLoginSuccess } as a prop
 const Login = ({ onLoginSuccess }) => {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -24,7 +27,8 @@ const Login = ({ onLoginSuccess }) => {
 
     setIsLoading(true);
     try {
-      const response = await axios.post("http://localhost:4000/api/auth/login", {
+      // 2. Use the API_URL variable instead of a hardcoded string
+      const response = await axios.post(API_URL, {
         email: form.email,
         password: form.password,
       });
@@ -33,10 +37,10 @@ const Login = ({ onLoginSuccess }) => {
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("currentUser", JSON.stringify(response.data.user));
 
-      // 2. It MUST call onLoginSuccess() right here
+      // 3. It MUST call onLoginSuccess() right here
       onLoginSuccess(); 
       
-      // 3. Then it navigates
+      // 4. Then it navigates
       navigate("/dashboard");
 
     } catch (err) {
